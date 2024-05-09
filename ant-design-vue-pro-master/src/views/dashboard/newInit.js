@@ -108,7 +108,6 @@ netTopology.prototype.init = function (data) {
   netTopology.controls.enablePan = !1;
   netTopology.controls.autoRotate = !0;
   netTopology.controls.autoRotateSpeed = .5;
-
   netTopology.scene = new THREE.Scene;
   netTopology.scene.background = new THREE.Color(0);
   netTopology.scene.add(new THREE.AmbientLight(16777215));
