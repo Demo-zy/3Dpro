@@ -138,7 +138,7 @@ netTopology.prototype.init = function (data) {
     e = 320 - 300 * b;
     $.each(g, function (a, c) {
       if (c.layer < b + 2) {
-
+        //
         if (c.layer == b + 1) {
           a = (new THREE.TextureLoader).load('http://192.168.8.94:8000/pic/' + c.path);
 
