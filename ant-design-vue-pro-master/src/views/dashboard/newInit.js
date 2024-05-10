@@ -28,7 +28,6 @@ FORCE.getForceLayout = function (layoutData, callback) {
   var body = document.getElementsByTagName("body")[0];
   body.appendChild(div)
   myChart = echarts.init(document.getElementById('tuopu'));
-
   let option = {
     series: [{
       name: "tuopu",                  //系列列表
@@ -54,7 +53,7 @@ FORCE.getForceLayout = function (layoutData, callback) {
   })
 
 
-  // console.log(myChart.getEnode(), myChart.getEeage(),'myChart.getEnode(), myChart.getEeage()')
+  console.log(myChart.getEnode(), myChart.getEeage(),'myChart.getEnode(), myChart.getEeage()')
   callback(myChart.getEnode(), myChart.getEeage());
 }
 
@@ -111,72 +110,110 @@ netTopology.prototype.init = function (data) {
   netTopology.scene = new THREE.Scene;
   netTopology.scene.background = new THREE.Color(0);
   netTopology.scene.add(new THREE.AmbientLight(16777215));
-  //三维底面网格线
-  for (var a = new THREE.Group,
-         d, b = 0; 3 > b; b++) {
-    d = 300 - 300 * b;
-    var c = new THREE.GridHelper(1050, 50);
-    c.position.y = d;
-    c.material.opacity = .75;
-    c.material.transparent = !0;
-    0 == b && (c.material.color = new THREE.Color("rgb(132, 112, 255)"));
-    1 == b && (c.material.color = new THREE.Color("rgb(255, 255, 0)"));
-    2 == b && (c.material.color = new THREE.Color("rgb(0, 255, 255)"));
-    // console.log(c,'c')
-    a.add(c)
+  /*三维底面网格线 planeGroup:三维底面,GridHelper:网格线
+  通过 Three.js 类 GridHelper 可以创建一个坐标网格对象
+  GridHelper 本质上是对线模型对象 Line 的封装，纵横交错的直线构成一个矩形网格模型对象。
+  GridHelper( size : number, divisions : Number, colorCenterLine : Color, colorGrid : Color )
+  size -- 网格宽度，默认为 10.
+  divisions -- 等分数，默认为 10.
+  colorCenterLine -- 中心线颜色，默认 0x444444
+  colorGrid --  网格线颜色，默认为 0x888888
+  */
+  var planeGroup = new THREE.Group, nodeGroup;
+  for ( var i= 0; 3 > i; i++) {
+    nodeGroup = 300 - 300 * i;
+    var gridHelper = new THREE.GridHelper(1050, 50);
+    gridHelper.position.y = nodeGroup;
+    gridHelper.material.opacity = .75;
+    gridHelper.material.transparent = !0;
+    0 == i && (gridHelper.material.color = new THREE.Color("rgb(132, 112, 255)"));
+    1 == i && (gridHelper.material.color = new THREE.Color("rgb(255, 255, 0)"));
+    2 == i && (gridHelper.material.color = new THREE.Color("rgb(0, 255, 255)"));
+    planeGroup.add(gridHelper)
   }
-  a.name = "planeGroup";
-  d = new THREE.Group;
-  d.name = "nodeGroup";
+  planeGroup.name = "planeGroup";
+  nodeGroup = new THREE.Group;
+  nodeGroup.name = "nodeGroup";
   var that = netTopology;
-
-  for (var e, c = node_link_Sort(netTopology.jsonData.nodes), g = node_link_Sort(netTopology.jsonData.links), g = netTopology.prototype.getForceLayout(c, g), b = 0; 3 > b; b++) {
-
-    var l = new THREE.Group;
-    l.name = "\u7b2c" + (b + 1) + "\u5c42";
-    e = 320 - 300 * b;
-    $.each(g, function (a, c) {
-      if (c.layer < b + 2) {
-        //
-        if (c.layer == b + 1) {
-          a = (new THREE.TextureLoader).load('http://192.168.8.94:8000/pic/' + c.path);
-
-          var d = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshPhongMaterial({
+  /*
+  threejs三维坐标系，向上为Y正轴，向右为X正轴，向屏幕从里到外方向为Z正轴。
+  https://juejin.cn/post/7056946979623927839
+  **/
+  var topoMeshY,
+    topoMeshNodeArr = node_link_Sort(netTopology.jsonData.nodes),
+    nodeLinkArr = node_link_Sort(netTopology.jsonData.links),
+    topoPointArr = netTopology.prototype.getForceLayout(topoMeshNodeArr, nodeLinkArr);
+  for (var i = 0; 3 > i; i++) {
+    /*通过 THREE.Group 类创建一个组对象 group,然后通过 add 方法把网格模型 mesh1、mesh2 作为设置为组对象 group 的子对象，
+    然后在通过执行 scene.add(group)把组对象 group 作为场景对象的 scene 的子对象。
+    也就是说场景对象是 scene 是 group 的父对象，group 是 mesh1、mesh2 的父对象。
+    * */
+    var layGroup = new THREE.Group;
+    layGroup.name = "\u7b2c" + (i + 1) + "\u5c42";
+    topoMeshY = 320 - 300 * i;
+    $.each(topoPointArr, function (index, value) {
+      if (value.layer < i + 2) {
+        console.log(value.layer,'clayer')
+        if (value.layer == i + 1) {
+          let texTureItem;
+          texTureItem = (new THREE.TextureLoader).load('http://192.168.8.94:8000/pic/' + value.path);
+          var topoMesh = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshPhongMaterial({
             transparent: !0,
             opacity: 1,
             emissive: "black"
           }));
-          d.position.set(c.position.x, e, c.position.y);
-          d.value = c.value;
-          d.name = c.name;
-          d.userData.abstract = c.abstract;
-          d.userData.pic = c.pic;
-          a.magFilter = THREE.LinearFilter;
-          a.anisotropy = 2;
-          d.material.map = a;
-          that.nodePos.push({position: d.position, id: c.id});
-          that.nodeObjects.push(d);
-          l.add(d)
+
+          topoMesh.position.set(value.position.x, topoMeshY, value.position.y);
+          topoMesh.value = value.value;
+          topoMesh.name = value.name;
+          topoMesh.userData.abstract = value.abstract;
+          topoMesh.userData.pic = value.pic;
+          texTureItem.magFilter = THREE.LinearFilter;
+          texTureItem.anisotropy = 2;
+          topoMesh.material.map = texTureItem;
+          that.nodePos.push({position: topoMesh.position, id: value.id});
+          that.nodeObjects.push(topoMesh);
+          console.log(topoMesh,'thistopoMesh')
+          layGroup.add(topoMesh)
         }
         return !0
       }
       return !1
     });
-    d.add(l)
+    nodeGroup.add(layGroup)
   }
   var g = new THREE.Group, n = new THREE.Group, p = new THREE.Group, q = new THREE.Group;
-  new THREE.Group;
-  new THREE.Group;
-  for (var h = 0, b = 0; b < that.jsonData.links.length; b++) {
-    var h = 0, t = that.jsonData.links[b].source, u = that.jsonData.links[b].target, f = new THREE.Vector3,
-      k = new THREE.Vector3, m = new THREE.Vector3, r = that.jsonData.links[b].layer;
-    $.each(c, function (a, b) {
-      b.id == t ? (k = that.nodePos[a].position, h += 1) : b.id == u && (m = that.nodePos[a].position, h += 1);
+  // new THREE.Group;
+  // new THREE.Group;
+  // var h = 0;
+  for ( var i = 0; i < that.jsonData.links.length; i++) {
+    var h = 0, linkSourceItem = that.jsonData.links[i].source, linkTargetItem = that.jsonData.links[i].target, fthirdVector = new THREE.Vector3,
+      k = new THREE.Vector3, m = new THREE.Vector3, r = that.jsonData.links[i].layer;
+    console.log(linkSourceItem,that.jsonData.links[i],r,'tur')
+    $.each(topoMeshNodeArr, function (index, value) {
+      console.log(value,'value')
+      value.id == linkSourceItem ? (k = that.nodePos[index].position, h += 1) : value.id == linkTargetItem && (m = that.nodePos[index].position, h += 1);
       if (2 == h) return !1
     });
-    f.subVectors(m, k);
-    f.normalize();
-    var v = k.distanceTo(m) - 25, f = new THREE.ArrowHelper(f, k, v, 3149642496, 20, 7);
+    /*
+     subVectors( a: Vector3, b: Vector3 ): this
+     将该向量设置为a - b。
+      var vec1 = new THREE.Vector3(1,2,3);
+      var vec2 = new THREE.Vector3(2,3,4);
+      new THREE.Vector3().subVectors(vec2, vec1);//返回Vector3 {x: 1, y: 1, z: 1}
+    * */
+    fthirdVector.subVectors(m, k);
+    fthirdVector.normalize();
+    /*
+    ArrowHelper(dir : Vector3, origin : Vector3, length : Number, hex : Number, headLength : Number, headWidth : Number )
+    dir -- 基于箭头原点的方向. 必须为单位向量.
+    origin -- 箭头的原点.
+    length -- 箭头的长度. 默认为 1.
+    hex -- 定义的16进制颜色值. 默认为 0xffff00.
+    headLength -- 箭头头部(锥体)的长度. 默认为箭头长度的0.2倍(0.2 * length).
+    headWidth -- The width of the head of the arrow. Default is 0.2 * headLength.
+    * */
+    var v = k.distanceTo(m) - 25, f = new THREE.ArrowHelper(fthirdVector, k, v, 3149642496, 20, 7);
     f.name = r;
     switch (r) {
       case 1:
@@ -192,21 +229,21 @@ netTopology.prototype.init = function (data) {
         q.add(f)
     }
   }
-  for (b = 0; 3 > b; b++) {
-    c = new THREE.Group;
-    c.add(d.children[0]);
-    c.add(a.children[0]);
-    switch (b) {
+  for (var i = 0; 3 > i; i++) {
+    topoMeshNodeArr = new THREE.Group;
+    topoMeshNodeArr.add(nodeGroup.children[0]);
+    topoMeshNodeArr.add(planeGroup.children[0]);
+    switch (i) {
       case 0:
-        c.add(g);
+        topoMeshNodeArr.add(g);
         break;
       case 1:
-        c.add(n);
+        topoMeshNodeArr.add(n);
         break;
       case 2:
-        c.add(p)
+        topoMeshNodeArr.add(p)
     }
-    netTopology.networkGroup.add(c)
+    netTopology.networkGroup.add(topoMeshNodeArr)
   }
 
   netTopology.networkGroup.add(q);
@@ -270,7 +307,7 @@ netTopology.prototype.rayMousemove = function (a, d) {
 
   0 < a.length ? netTopology.INTERSECTED != a[0].object && (netTopology.INTERSECTED && netTopology.INTERSECTED.material.emissive.setHex(netTopology.INTERSECTED.currentHex),
     netTopology.INTERSECTED = a[0].object, netTopology.INTERSECTED.currentHex = netTopology.INTERSECTED.material.emissive.getHex(), netTopology.INTERSECTED.scale.setScalar(1.2),
-    netTopology.INTERSECTED.material.emissive.setHex(5592405), console.log(netTopology.INTERSECTED.name)) : (netTopology.INTERSECTED &&
+    netTopology.INTERSECTED.material.emissive.setHex(5592405), console.log(netTopology.INTERSECTED,a)) : (netTopology.INTERSECTED &&
   (netTopology.INTERSECTED.material.emissive.setHex(netTopology.INTERSECTED.currentHex), netTopology.INTERSECTED.scale.setScalar(1)),
     netTopology.INTERSECTED = null)
 
@@ -342,33 +379,35 @@ netTopology.prototype.showDetail = function (a) {
 }
 
 netTopology.prototype.showText = function (a) {
-  console.log(a, 'aaaaaaaaaaaaaaaaa')
   $("#detail").html("<textarea></textarea>");
   $("#detail textarea").typetype(a, {t: 10, e: 0})
 }
 
-netTopology.prototype.getForceLayout = function (a, d) {
-
-  var b = [], c = [];
-  $.each(a, function (a, c) {
-    b.push({name: c.id, value: c.name, path: c.path, layer: c.layer, abstract: c.abstract, pic: c.pic})
+netTopology.prototype.getForceLayout = function (pointArr, lineArr) {
+  console.log(pointArr)
+  var b = [], clineArr = [];
+  $.each(pointArr, function (index, value) {
+    b.push({name: value.id, value: value.name, path: value.path, layer: value.layer, abstract: value.abstract, pic: value.pic})
+    console.log(b,'zheli b')
   });
-  c = d;
+  clineArr = lineArr;
   for (var i = 1; 4 > i; i++) {
     var e = {nodes: [], links: []};
-    $.each(b, function (a, b) {
-      b.layer == i && e.nodes.push(b)
+    $.each(b, function (index, value) {
+      value.layer == i && e.nodes.push(value)
     });
-    $.each(c, function (a, b) {
-      b.layer == i && e.links.push(b)
+    $.each(clineArr, function (index, value) {
+      value.layer == i && e.links.push(value)
     });
 
     FORCE.getForceLayout(e, function (a, b) {
+      console.log(a,b,'c')
+      console.log(e.nodes,'aaaaaaaaaaaa')
       $.each(e.nodes, function (b, c) {
         b = a[b].p;
-        console.log(a, 'bbb')
+        console.log(b, 'a[b].p')
         c.position = {x: b[0] - 500, y: 500 - b[1]}
-        console.log(c.position, c, 'c.position')
+
       });
 
     })
