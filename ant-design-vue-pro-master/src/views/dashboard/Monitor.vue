@@ -1,3 +1,4 @@
+<script src="newInit.js"></script>
 <template>
   <div>
     Monitor

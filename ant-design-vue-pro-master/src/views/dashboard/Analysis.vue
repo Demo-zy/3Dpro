@@ -176,12 +176,13 @@ export default {
   }
 }
 </script>
-<style lang="less" scoped>
+<style lang="less" >
 .body {
   font-family: Monospace;
   margin: 0px;
   overflow: hidden;
   height: 100%;
+  background: #000000;
 }
 
 </style>
@@ -206,13 +207,14 @@ export default {
 }
 
 #background {
-  top: 0px;
-  width: 100%;
-  height: 100%;
+  top: 2.5%;
+  width:100%;
+  height: 105%;
   position: absolute;
   background-image: url(~@/views/dashboard/pic/背景.png);
   background-size: 100% 100%;
-  z-index: 0
+  z-index: 0;
+
 }
 
 .btn_list {

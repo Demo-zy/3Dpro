@@ -7,7 +7,7 @@
 ### 2024.5.7
 1.将init.js重写为newInit.js，将3D拓扑用netTopology对象表示：
 netTopology参数：
-- netTopology.container 
+- netTopology.container ~~~~
 - netTopology.camera 
 - netTopology.controls
 - netTopology.scene
@@ -44,3 +44,7 @@ netTopology参数：
 ### 2024.5.9
 - 增加了scrollFunc（）方法，可以使得拓扑通过鼠标滚轮放大缩小
 - 但是存在页面也会随着鼠标滚轮滚动的情况，添加禁止页面滚动的方法，要在newInit.js与Analysis.vue同时加上！
+
+### 2024.5.10
+- newInit.js里的init（）的变量全部重写，之前的太乱了
+- 线可以根据不同layer分类颜色

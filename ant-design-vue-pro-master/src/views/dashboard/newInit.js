@@ -182,30 +182,45 @@ netTopology.prototype.init = function (data) {
     });
     nodeGroup.add(layGroup)
   }
-  var g = new THREE.Group, n = new THREE.Group, p = new THREE.Group, q = new THREE.Group;
+  //定义四层箭头
+  var firstArrowLayer = new THREE.Group,
+    secondArrowLayer = new THREE.Group,
+    thirdArrowLayer = new THREE.Group,
+    forthArrowLayer = new THREE.Group;
   // new THREE.Group;
   // new THREE.Group;
   // var h = 0;
   for ( var i = 0; i < that.jsonData.links.length; i++) {
-    var h = 0, linkSourceItem = that.jsonData.links[i].source, linkTargetItem = that.jsonData.links[i].target, fthirdVector = new THREE.Vector3,
-      k = new THREE.Vector3, m = new THREE.Vector3, r = that.jsonData.links[i].layer;
-    console.log(linkSourceItem,that.jsonData.links[i],r,'tur')
+    var h = 0,
+      linkSourceItem = that.jsonData.links[i].source,
+      linkTargetItem = that.jsonData.links[i].target,
+      fthirdVector = new THREE.Vector3,
+      soureVector = new THREE.Vector3,
+      targetVector = new THREE.Vector3,
+      layer = that.jsonData.links[i].layer;
+    console.log(that.jsonData.links[i],layer,'tur')
     $.each(topoMeshNodeArr, function (index, value) {
-      console.log(value,'value')
-      value.id == linkSourceItem ? (k = that.nodePos[index].position, h += 1) : value.id == linkTargetItem && (m = that.nodePos[index].position, h += 1);
+      //k:nodeid与linksource相等的点的向量,源向量
+      //m:nodeid与linkTarget相等的点的向量，末端向量
+      value.id == linkSourceItem ? (soureVector = that.nodePos[index].position, h += 1) :
+        value.id == linkTargetItem && (targetVector = that.nodePos[index].position, h += 1);
       if (2 == h) return !1
     });
     /*
      subVectors( a: Vector3, b: Vector3 ): this
      将该向量设置为a - b。
+     获取方向向量
       var vec1 = new THREE.Vector3(1,2,3);
       var vec2 = new THREE.Vector3(2,3,4);
       new THREE.Vector3().subVectors(vec2, vec1);//返回Vector3 {x: 1, y: 1, z: 1}
+      normalize(): this
+      将该向量转换为单位向量（unit vector）， 也就是说，将该向量的方向设置为和原向量相同，但是其长度（length）为1。就是将向量归一化。
     * */
-    fthirdVector.subVectors(m, k);
+    fthirdVector.subVectors(targetVector, soureVector);
     fthirdVector.normalize();
     /*
     ArrowHelper(dir : Vector3, origin : Vector3, length : Number, hex : Number, headLength : Number, headWidth : Number )
+    生成一个箭头
     dir -- 基于箭头原点的方向. 必须为单位向量.
     origin -- 箭头的原点.
     length -- 箭头的长度. 默认为 1.
@@ -213,20 +228,26 @@ netTopology.prototype.init = function (data) {
     headLength -- 箭头头部(锥体)的长度. 默认为箭头长度的0.2倍(0.2 * length).
     headWidth -- The width of the head of the arrow. Default is 0.2 * headLength.
     * */
-    var v = k.distanceTo(m) - 25, f = new THREE.ArrowHelper(fthirdVector, k, v, 3149642496, 20, 7);
-    f.name = r;
-    switch (r) {
+    var distance = soureVector.distanceTo(targetVector) - 25,
+      arrow = new THREE.ArrowHelper(fthirdVector, soureVector, distance, '#FFD700', 20, 7);
+    arrow.layer = layer;
+    if(arrow.layer==4){
+      arrow.setColor('#363636');
+      arrow.setLength(distance,0,0)
+    }
+    console.log(arrow.name,'arrow.name')
+    switch (arrow.layer) {
       case 1:
-        g.add(f);
+        firstArrowLayer.add(arrow);
         break;
       case 2:
-        n.add(f);
+        secondArrowLayer.add(arrow);
         break;
       case 3:
-        p.add(f);
+        thirdArrowLayer.add(arrow);
         break;
       case 4:
-        q.add(f)
+        forthArrowLayer.add(arrow)
     }
   }
   for (var i = 0; 3 > i; i++) {
@@ -235,18 +256,22 @@ netTopology.prototype.init = function (data) {
     topoMeshNodeArr.add(planeGroup.children[0]);
     switch (i) {
       case 0:
-        topoMeshNodeArr.add(g);
+        //添加箭头layer
+        topoMeshNodeArr.add(firstArrowLayer);
         break;
       case 1:
-        topoMeshNodeArr.add(n);
+        //添加箭头layer
+        topoMeshNodeArr.add(secondArrowLayer);
         break;
       case 2:
-        topoMeshNodeArr.add(p)
+        //添加箭头layer
+        topoMeshNodeArr.add(thirdArrowLayer)
     }
     netTopology.networkGroup.add(topoMeshNodeArr)
   }
+  //添加箭头layer
+  netTopology.networkGroup.add(forthArrowLayer);
 
-  netTopology.networkGroup.add(q);
   netTopology.scene.add(netTopology.networkGroup);
   netTopology.renderer = new THREE.WebGLRenderer({antialias: !0});
   netTopology.renderer.setPixelRatio(window.devicePixelRatio);
