@@ -51,7 +51,7 @@ FORCE.getForceLayout = function (layoutData, callback) {
   myChart.getZr().on('click', function (params) {
     // console.log(params,'params')
   })
-  // console.log(myChart.getEnode(), myChart.getEeage(),'myChart.getEnode(), myChart.getEeage()')
+  console.log(myChart.getEnode(), myChart.getEeage(),'myChart.getEnode(), myChart.getEeage()')
   callback(myChart.getEnode(), myChart.getEeage());
 }
 
@@ -85,7 +85,8 @@ export function netTopology(obj) {
   netTopology.gridHelper = new THREE.Group;
   netTopology.topoMesh = new THREE.Group;
   netTopology.topoMeshNodeArr = [];
-  netTopology.testLine=new THREE.Group;
+  netTopology.testLine=[];
+  netTopology.testLineGroup=new THREE.Group;
 
 
 }
@@ -115,9 +116,9 @@ netTopology.prototype.init = function (data) {
   netTopology.prototype.initGroud();
   //初始化点线
   netTopology.prototype.initLine();
-  netTopology.prototype.initMeshLine();
+  // netTopology.prototype.initMeshLine();
   //添加点图层
-  netTopology.prototype.addPointLayer();
+  // netTopology.prototype.addPointLayer();
 
   netTopology.renderer = new THREE.WebGLRenderer({antialias: !0});
   netTopology.renderer.setPixelRatio(window.devicePixelRatio);
@@ -164,7 +165,7 @@ colorGrid --  网格线颜色，默认为 0x888888
     netTopology.gridHelper.add(gridHelper);
 
   }
-  console.log(netTopology.gridHelper,'netTopology.gridHelper')
+  // console.log(netTopology.gridHelper,'netTopology.gridHelper')
   netTopology.gridHelper.name = 'gridHelper';
   netTopology.nodeGroup.name = "netTopology.nodeGroup";
   // for (var i = 0; 3 > i; i++) {
@@ -206,7 +207,7 @@ colorGrid --  网格线颜色，默认为 0x888888
           topoMesh.material.map = texTureItem;
 
           netTopology.nodePos.push({position: topoMesh.position, id: value.id});
-          console.log(netTopology.nodePos, 'netTopology.nodePos', topoMesh.position)
+          // console.log(netTopology.nodePos, 'netTopology.nodePos', topoMesh.position)
           netTopology.nodeObjects.push(topoMesh);
           layGroup.add(topoMesh)
         }
@@ -343,17 +344,17 @@ netTopology.prototype.initMeshLine=function () {
 
   // 生成一段贝赛尔曲线
   const curve = new THREE.LineCurve3(
-    new THREE.Vector3(-300, 0, 0),
-    new THREE.Vector3(300, 0, 0)
+    new THREE.Vector3(-500, 0, 0),
+    new THREE.Vector3(500, 0, 0)
   )
 // 获取这段线上51个坐标点
-  const points = curve.getPoints(1)
+  const points = curve.getPoints(51)
 // 将坐标数据存入positions中
   const positions = []
   for (let j = 0; j < points.length; j++) {
     positions.push(points[j].x, points[j].y, points[j].z)
   }
-  console.log(points,'point')
+  // console.log(points,'point')
 // 初始化MeshLine
   const line = new MeshLine();
 // 传入顶点坐标数据
@@ -364,21 +365,25 @@ netTopology.prototype.initMeshLine=function () {
 // 生成线材质
   this.material = new MeshLineMaterial({
     useMap: 0,
-    color: new THREE.Color(0x006666),
+    color: new THREE.Color('#D8BFD8'),
     opacity: 1,
     resolution: new THREE.Vector2(window.innerWidth, window.innerHeight),
     sizeAttenuation: 1,
-    lineWidth: 20,
+    lineWidth: 100,
     transparent: true,
-    wireframe: true,
+    // wireframe: true,
     map: this.texture
   })
 // 生成模型
 //   netTopology.testLine.add(new THREE.Mesh(line.geometry, this.material));
-  const mesh = new THREE.Mesh(line.geometry, this.material)
-  // netTopology.testLine.raycaster=MeshLineRaycast;
-  console.log(netTopology.testLine,'testline')
-  netTopology.scene.add(mesh)
+  const mesh=new THREE.Mesh(line.geometry, this.material);
+  mesh.value='testline'
+  mesh.raycaster=MeshLineRaycast;
+  netTopology.testLineGroup.add(mesh)
+  netTopology.nodeObjects.push(mesh);
+  // netTopology.testLine.push(mesh)
+  // console.log(netTopology.nodeObjects,'nodeObjects')
+  netTopology.scene.add(netTopology.testLineGroup)
 
 
 }
@@ -420,8 +425,8 @@ netTopology.prototype.rayMousemove = function (a, d) {
   netTopology.raycaster.setFromCamera(a, d);
   // 通过.intersectObjects()方法可以计算出来与射线相交的网格模型
   a = netTopology.raycaster.intersectObjects(netTopology.nodeObjects);
-  // console.log(netTopology.nodeObjects)
-  // let b = netTopology.raycaster.intersectObjects([netTopology.testLine]);
+  // console.log(a,'aaaa')
+  // let b = netTopology.raycaster.intersectObjects(netTopology.testLine);
   // console.log(b,'bbbbbbbbbb')
 
   // console.log(a,a.length,'intersectObjects')
@@ -476,9 +481,9 @@ netTopology.prototype.homeAnimation = function () {
     }, 800).start()
   });
   var d;
-  console.log(netTopology.networkGroup.children,'netTopology.networkGroup.children')
+  // console.log(netTopology.networkGroup.children,'netTopology.networkGroup.children')
   d = netTopology.networkGroup.children[3];
-  console.log(d, netTopology.networkGroup, 'dddd');
+  // console.log(d, netTopology.networkGroup, 'dddd');
   (new TWEEN.Tween(netTopology.networkGroup.children[0].position)).delay(0).to({
     y: 0,
     x: 0,
@@ -513,7 +518,7 @@ netTopology.prototype.networkAnimation = function () {
   if ("first" != netTopology.which_layer) {
     netTopology.which_layer = "first";
     TWEEN.removeAll();
-    console.log( netTopology.networkGroup.children,' netTopology.networkGroup.children[3]')
+    // console.log( netTopology.networkGroup.children,' netTopology.networkGroup.children[3]')
     netTopology.networkGroup.children[3].visible = !1;
     var a = (new TWEEN.Tween(netTopology.networkGroup.children[0].position)).easing(TWEEN.Easing.Quadratic.Out).delay(100).to({
         x: 0,
@@ -689,7 +694,7 @@ netTopology.prototype.showText = function (a) {
 }
 
 netTopology.prototype.getForceLayout = function (pointArr, lineArr) {
-  console.log(pointArr, 'pointArr')
+  // console.log(pointArr, 'pointArr')
   var arr = [], clineArr = [];
   $.each(pointArr, function (index, value) {
     arr.push({
@@ -698,12 +703,14 @@ netTopology.prototype.getForceLayout = function (pointArr, lineArr) {
       path: value.path,
       layer: value.layer,
       abstract: value.abstract,
-      pic: value.pic
+      pic: value.pic,
+      position:{x: value.x , y: value.y}
     });
-    console.log(arr, 'zheli Arr')
+    // console.log(arr, 'zheli Arr')
   });
   clineArr = lineArr;
 
+  //使用echarts随机生成
   for (var i = 1; 4 > i; i++) {
     var e = {nodes: [], links: []};
     $.each(arr, function (index, value) {
@@ -716,8 +723,8 @@ netTopology.prototype.getForceLayout = function (pointArr, lineArr) {
       let nodeArr = node;
       $.each(e.nodes, function (index, value) {
         let positon = nodeArr[index].p;
-        value.position = {x: positon[0] - 500, y: 500 - positon[1]}
-        // value.position = {x: positon[0] , y: positon[1]}
+        console.log(value,'value')
+        value.position =(value.position.x&&value.position.y) ? value.position: {x: value.position.x||positon[0]-500 , y: value.position.y||500-positon[1]}
       });
     })
 

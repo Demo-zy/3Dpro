@@ -1,0 +1,234 @@
+{
+  "links": [
+    {
+      "source": 1,
+      "target": 12,
+      "layer":4
+    },
+    {
+      "source": 5,
+      "target": 18,
+      "layer":4
+    },
+    {
+      "source": 6,
+      "target": 13,
+      "layer":4
+    },
+    {
+      "source": 7,
+      "target": 14,
+      "layer":4
+    },
+    {
+      "source": 5,
+      "target": 19,
+      "layer":4
+    },
+    {
+      "source": 15,
+      "target": 22,
+      "layer":4
+    },
+    {
+      "source": 16,
+      "target": 23,
+      "layer":4
+    },
+    {
+      "source": 17,
+      "target": 27,
+      "layer":4
+    },
+    {
+      "source": 18,
+      "target": 21,
+      "layer":4
+    },
+    {
+      "source": 19,
+      "target": 26,
+      "layer":4
+    },
+    {
+      "source": 3,
+      "target": 1,
+      "layer":1
+    },
+    {
+      "source": 5,
+      "target": 2,
+      "layer":1
+    },
+    {
+      "source": 7,
+      "target": 3,
+      "layer":1
+    },
+    {
+      "source": 7,
+      "target": 5,
+      "layer":1
+    },
+    {
+      "source": 7,
+      "target": 4,
+      "layer":1
+    },
+    {
+      "source": 7,
+      "target": 6,
+      "layer":1
+    },
+    {
+      "source": 4,
+      "target": 8,
+      "layer":1
+    },
+    {
+      "source": 4,
+      "target": 9,
+      "layer":1
+    },
+    {
+      "source": 6,
+      "target": 10,
+      "layer":1
+    },
+    {
+      "source": 11,
+      "target": 12,
+      "layer":2
+    },
+    {
+      "source": 11,
+      "target": 17,
+      "layer":2
+    },
+    {
+      "source": 11,
+      "target": 16,
+      "layer":2
+    },
+    {
+      "source": 13,
+      "target": 17,
+      "layer":2
+    },
+    {
+      "source": 18,
+      "target": 19,
+      "layer":2
+    },
+    {
+      "source": 15,
+      "target": 20,
+      "layer":2
+    },
+    {
+      "source": 11,
+      "target": 14,
+      "layer":2
+    },
+    {
+      "source": 21,
+      "target": 22,
+      "layer":3
+    },
+    {
+      "source": 21,
+      "target": 23,
+      "layer":3
+    },
+    {
+      "source": 22,
+      "target": 34,
+      "layer":3
+    },
+    {
+      "source": 23,
+      "target": 35,
+      "layer":3
+    },
+    {
+      "source": 35,
+      "target": 30,
+      "layer":3
+    },
+    {
+      "source": 35,
+      "target": 27,
+      "layer":3
+    },
+    {
+      "source": 34,
+      "target": 26,
+      "layer":3
+    },
+    {
+      "source": 34,
+      "target": 28,
+      "layer":3
+    }
+  ],
+  "nodes": [
+
+    {
+      "name": "专项企业",
+      "id": 21,
+      "path": "物理层/专项企业.png",
+      "layer": 3,
+      "abstract":"经度：东经150.3 纬度：北纬31.5。\n通联单位：后方企业1，后方企业2",
+      "pic":"物理层/专项企业.png",
+      "x": 100,
+      "y": 100
+    },
+    {
+      "name": "后方企业1",
+      "id": 22,
+      "path": "物理层/通信枢纽.png",
+      "layer": 3,
+      "abstract":"经度：东经150.9 纬度：北纬30.6。\n通联单位：研究观察所1",
+      "pic":"物理层/通信枢纽.png",
+      "x": 200,
+      "y": 200
+    },
+    {
+      "name": "后方企业2",
+      "id": 23,
+      "path": "物理层/通信枢纽.png",
+      "layer": 3,
+      "abstract":"经度：东经149.9 纬度：北纬31.2。\n通联单位：研究观察所2",
+      "pic":"物理层/通信枢纽.png",
+      "x": 100,
+      "y": 300
+    },
+    {
+      "name": "高新技术企业",
+      "id": 26,
+      "path": "物理层/高新技术.png",
+      "layer": 3,
+      "abstract":"经度：东经150.8 纬度：北纬31.6。\n通联单位：实施雷达对抗作战打击",
+      "pic":"物理层/高新技术.png",
+      "x": 200,
+      "y": 300
+    },
+    {
+      "name": "wifi站",
+      "id": 27,
+      "path": "物理层/wifi站.png",
+      "layer": 3,
+      "abstract":"经度：东经148.7 纬度：北纬27.6。\n通联单位：实施短波无线电通信作战打击",
+      "pic": "物理层/wifi站.png"
+    },
+    {
+      "name": "通信对抗控制站",
+      "id": 28,
+      "path": "物理层/通信对抗控制站.png",
+      "layer": 3,
+      "abstract":"经度：东经143.9 纬度：北纬30.6。\n通联单位：实施通信对抗作战打击",
+      "pic":"物理层/通信对抗控制站.png",
+      "x": 300
+    }
+  ]
+}

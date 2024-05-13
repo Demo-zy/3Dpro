@@ -128,6 +128,7 @@ export default {
     this.newNetTopo=new netTopology(this.showObj);
     this.newNetTopo.init(jsonData);
     this.newNetTopo.animate();
+    that.newNetTopo.rotate()
 
     $(".btn_list button").bind("click", function (a) {
       switch (a.target.id) {
