@@ -3,6 +3,7 @@ import "../../assets/js/typetype.js"
 import "../../assets/js/OrbitControls.js"
 import TWEEN from "../../assets/js/tween.min.js"
 import Stats from "../../assets/js/stats.min.js"
+import {MeshLine, MeshLineMaterial, MeshLineRaycast} from 'three.meshline'
 import {render} from "@/views/dashboard/init";
 
 var myChart
@@ -47,20 +48,13 @@ FORCE.getForceLayout = function (layoutData, callback) {
   myChart.setOption(option);
   body.removeChild(div);
   // console.log(myChart.getZr(),'myChart.getZr().')
-
   myChart.getZr().on('click', function (params) {
     // console.log(params,'params')
   })
-
-
-  console.log(myChart.getEnode(), myChart.getEeage(),'myChart.getEnode(), myChart.getEeage()')
+  // console.log(myChart.getEnode(), myChart.getEeage(),'myChart.getEnode(), myChart.getEeage()')
   callback(myChart.getEnode(), myChart.getEeage());
 }
 
-
-var container, camera, controls, scene, renderer, raycaster, nodeObjects = [], networkGroup = new THREE.Group,
-  nodePos = [], jsonData, isShowDetail = !1, mouse = new THREE.Vector2, INTERSECTED,
-  offset = new THREE.Vector3(10, 10, 10);
 
 export function netTopology(obj) {
   netTopology.container = obj.container;
@@ -69,7 +63,8 @@ export function netTopology(obj) {
   netTopology.scene = obj.scene;
   netTopology.renderer = obj.renderer;
   netTopology.raycaster = obj.renderer;
-  netTopology.nodeObjects = nodeObjects;
+  netTopology.nodeObjects = [];
+  netTopology.lineObjects = [];
   netTopology.networkGroup = new THREE.Group;
   netTopology.nodePos = obj.nodePos;
   netTopology.jsonData = obj.jsonData;
@@ -86,10 +81,16 @@ export function netTopology(obj) {
   netTopology.near = 1;
   netTopology.far = 4E3;
   netTopology.fov = 70;
+  netTopology.nodeGroup = new THREE.Group;
+  netTopology.gridHelper = new THREE.Group;
+  netTopology.topoMesh = new THREE.Group;
+  netTopology.topoMeshNodeArr = [];
+  netTopology.testLine=new THREE.Group;
 
 
 }
 
+//初始化函数
 netTopology.prototype.init = function (data) {
   netTopology.jsonData = data;
   // console.log(netTopology.jsonData,netTopology.container)
@@ -110,39 +111,73 @@ netTopology.prototype.init = function (data) {
   netTopology.scene = new THREE.Scene;
   netTopology.scene.background = new THREE.Color(0);
   netTopology.scene.add(new THREE.AmbientLight(16777215));
-  /*三维底面网格线 planeGroup:三维底面,GridHelper:网格线
-  通过 Three.js 类 GridHelper 可以创建一个坐标网格对象
-  GridHelper 本质上是对线模型对象 Line 的封装，纵横交错的直线构成一个矩形网格模型对象。
-  GridHelper( size : number, divisions : Number, colorCenterLine : Color, colorGrid : Color )
-  size -- 网格宽度，默认为 10.
-  divisions -- 等分数，默认为 10.
-  colorCenterLine -- 中心线颜色，默认 0x444444
-  colorGrid --  网格线颜色，默认为 0x888888
-  */
-  var planeGroup = new THREE.Group, nodeGroup;
-  for ( var i= 0; 3 > i; i++) {
-    nodeGroup = 300 - 300 * i;
+  //初始化平面
+  netTopology.prototype.initGroud();
+  //初始化点线
+  netTopology.prototype.initLine();
+  netTopology.prototype.initMeshLine();
+  //添加点图层
+  netTopology.prototype.addPointLayer();
+
+  netTopology.renderer = new THREE.WebGLRenderer({antialias: !0});
+  netTopology.renderer.setPixelRatio(window.devicePixelRatio);
+  netTopology.renderer.setSize(window.innerWidth,
+    window.innerHeight);
+  netTopology.renderer.domElement.style.height = "100%";
+  netTopology.renderer.domElement.style.width = "100%";
+  netTopology.container.appendChild(netTopology.renderer.domElement);
+  //创建一个射线投射器`Raycaster`
+  netTopology.raycaster = new THREE.Raycaster;
+  netTopology.myStats = new Stats;
+  // console.log(netTopology.container.addEventListener("mousemove"))
+  document.addEventListener("mousemove", netTopology.prototype.onDocumentMouseMove, !1);
+  document.addEventListener("click", netTopology.prototype.onMouseClick, !1);
+  window.addEventListener("resize", netTopology.prototype.onWindowResize, !1)
+  if (document.addEventListener) { //火狐使用DOMMouseScroll绑定
+    document.addEventListener('DOMMouseScroll', netTopology.prototype.scrollFunc, false);
+  }
+  //其他浏览器
+  window.addEventListener("wheel", netTopology.prototype.scrollFunc, {passive: false})
+  // window.onmousewheel=netTopology.container.onmousewheel= netTopology.prototype.scrollFunc;
+
+
+}
+netTopology.prototype.initGroud = function () {
+  /*三维底面网格线 gridHelper:三维底面,GridHelper:网格线
+通过 Three.js 类 GridHelper 可以创建一个坐标网格对象
+GridHelper 本质上是对线模型对象 Line 的封装，纵横交错的直线构成一个矩形网格模型对象。
+GridHelper( size : number, divisions : Number, colorCenterLine : Color, colorGrid : Color )
+size -- 网格宽度，默认为 10.
+divisions -- 等分数，默认为 10.
+colorCenterLine -- 中心线颜色，默认 0x444444
+colorGrid --  网格线颜色，默认为 0x888888
+*/
+  for (var i = 0; 3 > i; i++) {
+    let height = 300 - 300 * i;
     var gridHelper = new THREE.GridHelper(1050, 50);
-    gridHelper.position.y = nodeGroup;
+    gridHelper.position.y = height;
     gridHelper.material.opacity = .75;
     gridHelper.material.transparent = !0;
     0 == i && (gridHelper.material.color = new THREE.Color("rgb(132, 112, 255)"));
     1 == i && (gridHelper.material.color = new THREE.Color("rgb(255, 255, 0)"));
     2 == i && (gridHelper.material.color = new THREE.Color("rgb(0, 255, 255)"));
-    planeGroup.add(gridHelper)
+    netTopology.gridHelper.add(gridHelper);
+
   }
-  planeGroup.name = "planeGroup";
-  nodeGroup = new THREE.Group;
-  nodeGroup.name = "nodeGroup";
-  var that = netTopology;
-  /*
-  threejs三维坐标系，向上为Y正轴，向右为X正轴，向屏幕从里到外方向为Z正轴。
-  https://juejin.cn/post/7056946979623927839
-  **/
+  console.log(netTopology.gridHelper,'netTopology.gridHelper')
+  netTopology.gridHelper.name = 'gridHelper';
+  netTopology.nodeGroup.name = "netTopology.nodeGroup";
+  // for (var i = 0; 3 > i; i++) {
+  //   netTopology.topoMesh.add(netTopology.gridHelper.children[0]);
+  // }
+}
+
+ netTopology.prototype.initPoint =async function () {
+
   var topoMeshY,
-    topoMeshNodeArr = node_link_Sort(netTopology.jsonData.nodes),
-    nodeLinkArr = node_link_Sort(netTopology.jsonData.links),
-    topoPointArr = netTopology.prototype.getForceLayout(topoMeshNodeArr, nodeLinkArr);
+    nodeLinkArr = node_link_Sort(netTopology.jsonData.links);
+  var topoPointArr = netTopology.prototype.getForceLayout(netTopology.topoMeshNodeArr, nodeLinkArr);
+  // netTopology.topoMeshNodeArr = node_link_Sort(netTopology.jsonData.nodes);
   for (var i = 0; 3 > i; i++) {
     /*通过 THREE.Group 类创建一个组对象 group,然后通过 add 方法把网格模型 mesh1、mesh2 作为设置为组对象 group 的子对象，
     然后在通过执行 scene.add(group)把组对象 group 作为场景对象的 scene 的子对象。
@@ -153,7 +188,6 @@ netTopology.prototype.init = function (data) {
     topoMeshY = 320 - 300 * i;
     $.each(topoPointArr, function (index, value) {
       if (value.layer < i + 2) {
-        console.log(value.layer,'clayer')
         if (value.layer == i + 1) {
           let texTureItem;
           texTureItem = (new THREE.TextureLoader).load('http://192.168.8.94:8000/pic/' + value.path);
@@ -162,7 +196,6 @@ netTopology.prototype.init = function (data) {
             opacity: 1,
             emissive: "black"
           }));
-
           topoMesh.position.set(value.position.x, topoMeshY, value.position.y);
           topoMesh.value = value.value;
           topoMesh.name = value.name;
@@ -171,39 +204,59 @@ netTopology.prototype.init = function (data) {
           texTureItem.magFilter = THREE.LinearFilter;
           texTureItem.anisotropy = 2;
           topoMesh.material.map = texTureItem;
-          that.nodePos.push({position: topoMesh.position, id: value.id});
-          that.nodeObjects.push(topoMesh);
-          console.log(topoMesh,'thistopoMesh')
+
+          netTopology.nodePos.push({position: topoMesh.position, id: value.id});
+          console.log(netTopology.nodePos, 'netTopology.nodePos', topoMesh.position)
+          netTopology.nodeObjects.push(topoMesh);
           layGroup.add(topoMesh)
         }
         return !0
       }
       return !1
     });
-    nodeGroup.add(layGroup)
+    netTopology.nodeGroup.add(layGroup)
+    // console.log(netTopology.nodeGroup.children[i],'netTopology.nodeGroup')
+    // netTopology.topoMesh.add(netTopology.gridHelper.children[0]);
+    //
+    // netTopology.topoMesh.add(netTopology.nodeGroup.children[0]);
   }
+
+}
+
+netTopology.prototype.addPointLayer = function () {
+  for (var i = 0; 3 > i; i++) {
+    // netTopology.topoMesh.add(netTopology.nodeGroup.children[0]);
+  }
+}
+
+netTopology.prototype.initLine =async function () {
+  /*
+  threejs三维坐标系，向上为Y正轴，向右为X正轴，向屏幕从里到外方向为Z正轴。
+  https://juejin.cn/post/7056946979623927839
+  **/
+  netTopology.topoMeshNodeArr = node_link_Sort(netTopology.jsonData.nodes);
+  //初始化点
+  await netTopology.prototype.initPoint();
   //定义四层箭头
   var firstArrowLayer = new THREE.Group,
     secondArrowLayer = new THREE.Group,
     thirdArrowLayer = new THREE.Group,
     forthArrowLayer = new THREE.Group;
-  // new THREE.Group;
-  // new THREE.Group;
   // var h = 0;
-  for ( var i = 0; i < that.jsonData.links.length; i++) {
+  for (let i = 0; i < netTopology.jsonData.links.length; i++) {
     var h = 0,
-      linkSourceItem = that.jsonData.links[i].source,
-      linkTargetItem = that.jsonData.links[i].target,
+      linkSourceItem = netTopology.jsonData.links[i].source,
+      linkTargetItem = netTopology.jsonData.links[i].target,
       fthirdVector = new THREE.Vector3,
       soureVector = new THREE.Vector3,
       targetVector = new THREE.Vector3,
-      layer = that.jsonData.links[i].layer;
-    console.log(that.jsonData.links[i],layer,'tur')
-    $.each(topoMeshNodeArr, function (index, value) {
+      layer = netTopology.jsonData.links[i].layer;
+    // console.log(that.jsonData.links[i],layer,'tur')
+    $.each(netTopology.topoMeshNodeArr, function (index, value) {
       //k:nodeid与linksource相等的点的向量,源向量
       //m:nodeid与linkTarget相等的点的向量，末端向量
-      value.id == linkSourceItem ? (soureVector = that.nodePos[index].position, h += 1) :
-        value.id == linkTargetItem && (targetVector = that.nodePos[index].position, h += 1);
+      value.id == linkSourceItem ? (soureVector = netTopology.nodePos[index].position, h += 1) :
+        value.id == linkTargetItem && (targetVector = netTopology.nodePos[index].position, h += 1);
       if (2 == h) return !1
     });
     /*
@@ -231,11 +284,12 @@ netTopology.prototype.init = function (data) {
     var distance = soureVector.distanceTo(targetVector) - 25,
       arrow = new THREE.ArrowHelper(fthirdVector, soureVector, distance, '#FFD700', 20, 7);
     arrow.layer = layer;
-    if(arrow.layer==4){
-      arrow.setColor('#363636');
-      arrow.setLength(distance,0,0)
+    if (arrow.layer == 4) {
+      arrow.setColor('#ffffff');
+      arrow.setLength(distance, 0, 0)
     }
-    console.log(arrow.name,'arrow.name')
+    netTopology.lineObjects.push(arrow);
+    // console.log(arrow.name, 'arrow.name')
     switch (arrow.layer) {
       case 1:
         firstArrowLayer.add(arrow);
@@ -250,51 +304,92 @@ netTopology.prototype.init = function (data) {
         forthArrowLayer.add(arrow)
     }
   }
-  for (var i = 0; 3 > i; i++) {
-    topoMeshNodeArr = new THREE.Group;
-    topoMeshNodeArr.add(nodeGroup.children[0]);
-    topoMeshNodeArr.add(planeGroup.children[0]);
-    switch (i) {
+
+  for (let j = 0; j<3; j++) {
+    netTopology.topoMesh=new THREE.Group
+    netTopology.topoMesh.add(netTopology.nodeGroup.children[0]);
+    netTopology.topoMesh.add(netTopology.gridHelper.children[0]);
+    // console.log(netTopology.nodeGroup,netTopology.nodeGroup.children[0],'netTopology.nodeGroup')
+
+    switch (j) {
       case 0:
         //添加箭头layer
-        topoMeshNodeArr.add(firstArrowLayer);
+        netTopology.topoMesh.add(firstArrowLayer);
         break;
       case 1:
         //添加箭头layer
-        topoMeshNodeArr.add(secondArrowLayer);
+        netTopology.topoMesh.add(secondArrowLayer);
         break;
       case 2:
         //添加箭头layer
-        topoMeshNodeArr.add(thirdArrowLayer)
+        netTopology.topoMesh.add(thirdArrowLayer)
     }
-    netTopology.networkGroup.add(topoMeshNodeArr)
+    // console.log(netTopology.topoMesh,'netTopology.topoMesh')
+    netTopology.networkGroup.add(netTopology.topoMesh)
   }
-  //添加箭头layer
-  netTopology.networkGroup.add(forthArrowLayer);
 
+  //添加箭头layer
+
+  netTopology.networkGroup.add(forthArrowLayer);
+  // console.log(netTopology.networkGroup.children,netTopology.gridHelper,netTopology.nodeGroup,'netTopology.nodeGroup')
   netTopology.scene.add(netTopology.networkGroup);
-  netTopology.renderer = new THREE.WebGLRenderer({antialias: !0});
-  netTopology.renderer.setPixelRatio(window.devicePixelRatio);
-  netTopology.renderer.setSize(window.innerWidth,
-    window.innerHeight);
-  netTopology.renderer.domElement.style.height = "100%";
-  netTopology.renderer.domElement.style.width = "100%";
-  netTopology.container.appendChild(netTopology.renderer.domElement);
-  netTopology.raycaster = new THREE.Raycaster;
-  netTopology.myStats = new Stats;
-  // console.log(netTopology.container.addEventListener("mousemove"))
-  document.addEventListener("mousemove", netTopology.prototype.onDocumentMouseMove, !1);
-  document.addEventListener("click", netTopology.prototype.onMouseClick, !1);
-  window.addEventListener("resize", netTopology.prototype.onWindowResize, !1)
-  if (document.addEventListener) { //火狐使用DOMMouseScroll绑定
-    document.addEventListener('DOMMouseScroll', netTopology.prototype.scrollFunc, false);
+  // console.log(netTopology.networkGroup,'netTopology.networkGroup')
+}
+
+netTopology.prototype.initMeshLine=function () {
+  netTopology.topoMeshNodeArr = node_link_Sort(netTopology.jsonData.nodes);
+  //初始化点
+  netTopology.prototype.initPoint();
+
+  // 生成一段贝赛尔曲线
+  const curve = new THREE.LineCurve3(
+    new THREE.Vector3(-300, 0, 0),
+    new THREE.Vector3(300, 0, 0)
+  )
+// 获取这段线上51个坐标点
+  const points = curve.getPoints(1)
+// 将坐标数据存入positions中
+  const positions = []
+  for (let j = 0; j < points.length; j++) {
+    positions.push(points[j].x, points[j].y, points[j].z)
   }
-  //其他浏览器
-  window.addEventListener("wheel", netTopology.prototype.scrollFunc, {passive: false})
-  // window.onmousewheel=netTopology.container.onmousewheel= netTopology.prototype.scrollFunc;
+  console.log(points,'point')
+// 初始化MeshLine
+  const line = new MeshLine();
+// 传入顶点坐标数据
+  line.setPoints(positions)
+// 获取纹理，官方案例中的纹理
+  this.texture = new THREE.TextureLoader().load('http://192.168.8.94:8000/pic/stroke.png')
+  this.texture.wrapS = this.texture.wrapT = THREE.RepeatWrapping
+// 生成线材质
+  this.material = new MeshLineMaterial({
+    useMap: 0,
+    color: new THREE.Color(0x006666),
+    opacity: 1,
+    resolution: new THREE.Vector2(window.innerWidth, window.innerHeight),
+    sizeAttenuation: 1,
+    lineWidth: 20,
+    transparent: true,
+    wireframe: true,
+    map: this.texture
+  })
+// 生成模型
+//   netTopology.testLine.add(new THREE.Mesh(line.geometry, this.material));
+  const mesh = new THREE.Mesh(line.geometry, this.material)
+  // netTopology.testLine.raycaster=MeshLineRaycast;
+  console.log(netTopology.testLine,'testline')
+  netTopology.scene.add(mesh)
 
 
 }
+
+// netTopology.prototype.lineAnimate=function () {
+//   requestAnimationFrame(netTopology.prototype.lineAnimate)
+//   if (this.material) {
+//     this.material.uniforms.dashOffset.value -= 0.005
+//   }
+// }
+
 
 function zoom(event) {
   event.preventDefault();
@@ -304,12 +399,7 @@ function zoom(event) {
 // 阻止 touchmove 事件的默认行为
 
 netTopology.prototype.render = function () {
-  // console.log(netTopology.controls,'netTopology.controls.')
   netTopology.controls.update();
-  // let m=a.clientX-netTopology.container.getBoundingClientRect().left;
-  // let n=a.clientY-netTopology.container.getBoundingClientRect().top
-  // netTopology.mouse.x=m;
-  // netTopology.mouse.y=n;
   netTopology.prototype.rayMousemove(netTopology.mouse, netTopology.camera);
   // console.log(netTopology.mouse.x,netTopology.mouse.y,'netTopology.mouse')
   netTopology.prototype.changeObjFace(netTopology.nodeObjects);
@@ -325,16 +415,28 @@ netTopology.prototype.animate = function () {
 }
 
 netTopology.prototype.rayMousemove = function (a, d) {
-
+  //.setFromCamera()计算射线投射器`Raycaster`的射线属性.ray
+// 形象点说就是在点击位置创建一条射线，用来选中拾取模型对象
   netTopology.raycaster.setFromCamera(a, d);
-
+  // 通过.intersectObjects()方法可以计算出来与射线相交的网格模型
   a = netTopology.raycaster.intersectObjects(netTopology.nodeObjects);
+  // console.log(netTopology.nodeObjects)
+  // let b = netTopology.raycaster.intersectObjects([netTopology.testLine]);
+  // console.log(b,'bbbbbbbbbb')
 
-  0 < a.length ? netTopology.INTERSECTED != a[0].object && (netTopology.INTERSECTED && netTopology.INTERSECTED.material.emissive.setHex(netTopology.INTERSECTED.currentHex),
-    netTopology.INTERSECTED = a[0].object, netTopology.INTERSECTED.currentHex = netTopology.INTERSECTED.material.emissive.getHex(), netTopology.INTERSECTED.scale.setScalar(1.2),
-    netTopology.INTERSECTED.material.emissive.setHex(5592405), console.log(netTopology.INTERSECTED,a)) : (netTopology.INTERSECTED &&
-  (netTopology.INTERSECTED.material.emissive.setHex(netTopology.INTERSECTED.currentHex), netTopology.INTERSECTED.scale.setScalar(1)),
-    netTopology.INTERSECTED = null)
+  // console.log(a,a.length,'intersectObjects')
+  0 < a.length ? netTopology.INTERSECTED != a[0].object
+    && (netTopology.INTERSECTED
+    && netTopology.INTERSECTED.material.emissive.setHex(netTopology.INTERSECTED.currentHex),
+      netTopology.INTERSECTED = a[0].object,
+      netTopology.INTERSECTED.currentHex = netTopology.INTERSECTED.material.emissive.getHex(),
+      netTopology.INTERSECTED.scale.setScalar(1.2),
+      netTopology.INTERSECTED.material.emissive.setHex(5592405),
+      console.log(netTopology.INTERSECTED, a, '??????'))
+    : (netTopology.INTERSECTED &&
+    (netTopology.INTERSECTED.material.emissive.setHex(netTopology.INTERSECTED.currentHex),
+      netTopology.INTERSECTED.scale.setScalar(1)),
+      netTopology.INTERSECTED = null)
 
 }
 
@@ -346,8 +448,10 @@ netTopology.prototype.changeObjFace = function (a) {
 }
 
 netTopology.prototype.homeAnimation = function () {
+
   function a() {
     $.each(d.children, function (a, c) {
+      console.log('d = netTopology.networkGroup.children[3]')
       a = c.line.material;
       c = c.cone.material;
       a.transparent = !0;
@@ -372,7 +476,9 @@ netTopology.prototype.homeAnimation = function () {
     }, 800).start()
   });
   var d;
+  console.log(netTopology.networkGroup.children,'netTopology.networkGroup.children')
   d = netTopology.networkGroup.children[3];
+  console.log(d, netTopology.networkGroup, 'dddd');
   (new TWEEN.Tween(netTopology.networkGroup.children[0].position)).delay(0).to({
     y: 0,
     x: 0,
@@ -399,163 +505,6 @@ netTopology.prototype.homeAnimation = function () {
   })
 }
 
-netTopology.prototype.showDetail = function (a) {
-  a ? netTopology.INTERSECTED.name != netTopology.pointed && (netTopology.showString = netTopology.INTERSECTED.userData.abstract, $("#detail").slideDown(1E3), $("#detail").html('<div style="background-color: rgba(50,50,50,0.8);color: white;padding: 5px 5px 5px 5px;opacity: 0.7;border: 0;resize: none;font-size: 23px;text-align: center;padding-top: 58%;padding-bottom: 70%;">\u52a0\u8f7d\u4e2d...</div>'), setTimeout("netTopology.prototype.showText(netTopology.showString)", 500)) : $("#detail").slideUp(900)
-}
-
-netTopology.prototype.showText = function (a) {
-  $("#detail").html("<textarea></textarea>");
-  $("#detail textarea").typetype(a, {t: 10, e: 0})
-}
-
-netTopology.prototype.getForceLayout = function (pointArr, lineArr) {
-  console.log(pointArr)
-  var b = [], clineArr = [];
-  $.each(pointArr, function (index, value) {
-    b.push({name: value.id, value: value.name, path: value.path, layer: value.layer, abstract: value.abstract, pic: value.pic})
-    console.log(b,'zheli b')
-  });
-  clineArr = lineArr;
-  for (var i = 1; 4 > i; i++) {
-    var e = {nodes: [], links: []};
-    $.each(b, function (index, value) {
-      value.layer == i && e.nodes.push(value)
-    });
-    $.each(clineArr, function (index, value) {
-      value.layer == i && e.links.push(value)
-    });
-
-    FORCE.getForceLayout(e, function (a, b) {
-      console.log(a,b,'c')
-      console.log(e.nodes,'aaaaaaaaaaaa')
-      $.each(e.nodes, function (b, c) {
-        b = a[b].p;
-        console.log(b, 'a[b].p')
-        c.position = {x: b[0] - 500, y: 500 - b[1]}
-
-      });
-
-    })
-  }
-  return b
-}
-
-netTopology.prototype.onWindowResize = function () {
-
-  netTopology.renderer.setSize(netTopology.container.getBoundingClientRect().width, netTopology.container.getBoundingClientRect().height)
-
-}
-
-netTopology.prototype.onDocumentMouseMove = function (a) {
-  a.preventDefault();
-  // mouse.x = ( (event.clientX - px)  / renderer.domElement.clientWidth) * 2 - 1;
-  // mouse.y = - ( (event.clientY - py) / renderer.domElement.clientHeight) * 2 + 1;
-  //屏幕坐标转换成世界坐标，偏移量
-  var px = netTopology.container.getBoundingClientRect().left;
-  var py = netTopology.container.getBoundingClientRect().top;
-  netTopology.mouse.x = ((a.clientX - px) / netTopology.container.getBoundingClientRect().width) * 2 - 1;
-  netTopology.mouse.y = 2 * -((a.clientY - py) / netTopology.container.getBoundingClientRect().height) + 1;
-
-  netTopology.prototype.showAbstract(netTopology.mouse.x, netTopology.mouse.y, a)
-}
-
-netTopology.prototype.scrollFunc = function (e) {
-  //禁止页面滚动，我也不知道为啥起作用了，不能删
-  e = e || window.event;
-  if (document.all) {
-    e.cancelBubble = true;
-  } else {
-    e.stopPropagation();
-  }
-
-  //改变fov值，并更新场景的渲染
-  if (e.wheelDelta) {
-    if (e.wheelDelta > 0) { //当滑轮向上滚动时
-      netTopology.fov -= (netTopology.near < netTopology.fov ? 4 : 0);
-    }
-    if (e.wheelDelta < 0) { //当滑轮向下滚动时
-      netTopology.fov += (netTopology.fov < netTopology.far ? 4 : 0);
-    }
-  } else if (e.detail) {  //Firefox滑轮事件
-    if (e.detail > 0) { //当滑轮向上滚动时
-      netTopology.fov -= 4;
-    }
-    if (e.detail < 0) { //当滑轮向下滚动时
-      netTopology.fov += 4;
-    }
-  }
-  netTopology.camera.fov = netTopology.fov;
-  console.log(netTopology.camera.fov, ' netTopology.camera.fov')
-  netTopology.camera.updateProjectionMatrix();
-
-
-  // renderer.render(scene, camera);
-}
-
-function stopBubble(e) {
-
-  // 如果提供了事件对象，则这是一个非IE浏览器
-
-  if (e && e.stopPropagation) {
-
-    // 因此它支持W3C的stopPropagation()方法
-
-    e.stopPropagation();
-
-  } else {
-
-    // 否则，我们需要使用IE的方式来取消事件冒泡
-
-    window.event.cancelBubble = true;
-
-  }
-
-}
-
-
-netTopology.prototype.scrollFuncFox = function () {
-  console.log('gungun111')
-}
-
-
-netTopology.prototype.showAbstract = function (a, d, e) {
-  let ev = e;
-  var px = netTopology.container.getBoundingClientRect().left;
-  var py = netTopology.container.getBoundingClientRect().top;
-  // console.log(ev.clientX,ev.clientY)
-  if (netTopology.INTERSECTED) {
-    $("#abstract").css("display", "table");
-    var b = document.getElementById("abstract");
-    b.innerText = netTopology.INTERSECTED.value;
-    // console.log(netTopology.INTERSECTED.value,'netTopology.INTERSECTED.value')
-    b.style.top = ev.clientY - py + "px";
-    b.style.left = ev.clientX - px + "px"
-    // console.log( b.style.top, b.style.left)
-  } else $("#abstract").css("display", "none")
-}
-
-
-netTopology.prototype.onMouseClick = function (a) {
-
-  netTopology.INTERSECTED && netTopology.isShowDetail && (netTopology.showDetail(!0), netTopology.prototype.showPic(!0))
-
-}
-
-function chartClick() {
-
-}
-
-netTopology.prototype.showPic = function (a) {
-
-  a ? netTopology.INTERSECTED.name != netTopology.pointed && (netTopology.picPath = netTopology.INTERSECTED.userData.pic, $("#picture").fadeOut(400), setTimeout("netTopology.prototype.changePic(picPath)", 400), netTopology.pointed = netTopology.INTERSECTED.name) : $("#picture").fadeOut(900)
-}
-
-netTopology.prototype.changePic = function (a) {
-  $("#picture img").attr("src", "http://192.168.8.94:8000/pic/" + a);
-  // console.log( "http://192.168.8.94:8000/pic/" + a)
-  $("#picture").fadeIn(400)
-}
-
 netTopology.prototype.networkAnimation = function () {
 
   netTopology.isShowDetail = !0;
@@ -564,6 +513,7 @@ netTopology.prototype.networkAnimation = function () {
   if ("first" != netTopology.which_layer) {
     netTopology.which_layer = "first";
     TWEEN.removeAll();
+    console.log( netTopology.networkGroup.children,' netTopology.networkGroup.children[3]')
     netTopology.networkGroup.children[3].visible = !1;
     var a = (new TWEEN.Tween(netTopology.networkGroup.children[0].position)).easing(TWEEN.Easing.Quadratic.Out).delay(100).to({
         x: 0,
@@ -728,6 +678,164 @@ netTopology.prototype.rotate = function () {
   1 == netTopology.controls.autoRotate ? netTopology.controls.autoRotate = !1 : netTopology.controls.autoRotate = !0
 
 }
+
+netTopology.prototype.showDetail = function (a) {
+  a ? netTopology.INTERSECTED.name != netTopology.pointed && (netTopology.showString = netTopology.INTERSECTED.userData.abstract, $("#detail").slideDown(1E3), $("#detail").html('<div style="background-color: rgba(50,50,50,0.8);color: white;padding: 5px 5px 5px 5px;opacity: 0.7;border: 0;resize: none;font-size: 23px;text-align: center;padding-top: 58%;padding-bottom: 70%;">\u52a0\u8f7d\u4e2d...</div>'), setTimeout("netTopology.prototype.showText(netTopology.showString)", 500)) : $("#detail").slideUp(900)
+}
+
+netTopology.prototype.showText = function (a) {
+  $("#detail").html("<textarea></textarea>");
+  $("#detail textarea").typetype(a, {t: 10, e: 0})
+}
+
+netTopology.prototype.getForceLayout = function (pointArr, lineArr) {
+  console.log(pointArr, 'pointArr')
+  var arr = [], clineArr = [];
+  $.each(pointArr, function (index, value) {
+    arr.push({
+      name: value.id,
+      value: value.name,
+      path: value.path,
+      layer: value.layer,
+      abstract: value.abstract,
+      pic: value.pic
+    });
+    console.log(arr, 'zheli Arr')
+  });
+  clineArr = lineArr;
+
+  for (var i = 1; 4 > i; i++) {
+    var e = {nodes: [], links: []};
+    $.each(arr, function (index, value) {
+      value.layer == i && e.nodes.push(value)
+    });
+    $.each(clineArr, function (index, value) {
+      value.layer == i && e.links.push(value)
+    });
+    FORCE.getForceLayout(e, function (node, eage) {
+      let nodeArr = node;
+      $.each(e.nodes, function (index, value) {
+        let positon = nodeArr[index].p;
+        value.position = {x: positon[0] - 500, y: 500 - positon[1]}
+        // value.position = {x: positon[0] , y: positon[1]}
+      });
+    })
+
+  }
+  // console.log(e.nodes,arr,'eee')
+  return arr
+}
+
+netTopology.prototype.onWindowResize = function () {
+
+  netTopology.renderer.setSize(netTopology.container.getBoundingClientRect().width, netTopology.container.getBoundingClientRect().height)
+
+}
+
+netTopology.prototype.onDocumentMouseMove = function (a) {
+  a.preventDefault();
+  // mouse.x = ( (event.clientX - px)  / renderer.domElement.clientWidth) * 2 - 1;
+  // mouse.y = - ( (event.clientY - py) / renderer.domElement.clientHeight) * 2 + 1;
+  //屏幕坐标转换成世界坐标，偏移量
+  var px = netTopology.container.getBoundingClientRect().left;
+  var py = netTopology.container.getBoundingClientRect().top;
+  netTopology.mouse.x = ((a.clientX - px) / netTopology.container.getBoundingClientRect().width) * 2 - 1;
+  netTopology.mouse.y = 2 * -((a.clientY - py) / netTopology.container.getBoundingClientRect().height) + 1;
+  netTopology.prototype.showAbstract(netTopology.mouse.x, netTopology.mouse.y, a)
+}
+
+netTopology.prototype.scrollFunc = function (e) {
+  //禁止页面滚动，我也不知道为啥起作用了，不能删
+  e = e || window.event;
+  if (document.all) {
+    e.cancelBubble = true;
+  } else {
+    e.stopPropagation();
+  }
+
+  //改变fov值，并更新场景的渲染
+  if (e.wheelDelta) {
+    if (e.wheelDelta > 0) { //当滑轮向上滚动时
+      netTopology.fov -= (netTopology.near < netTopology.fov ? 4 : 0);
+    }
+    if (e.wheelDelta < 0) { //当滑轮向下滚动时
+      netTopology.fov += (netTopology.fov < netTopology.far ? 4 : 0);
+    }
+  } else if (e.detail) {  //Firefox滑轮事件
+    if (e.detail > 0) { //当滑轮向上滚动时
+      netTopology.fov -= 4;
+    }
+    if (e.detail < 0) { //当滑轮向下滚动时
+      netTopology.fov += 4;
+    }
+  }
+  netTopology.camera.fov = netTopology.fov;
+  // console.log(netTopology.camera.fov, ' netTopology.camera.fov')
+  netTopology.camera.updateProjectionMatrix();
+
+
+  // renderer.render(scene, camera);
+}
+
+function stopBubble(e) {
+
+  // 如果提供了事件对象，则这是一个非IE浏览器
+
+  if (e && e.stopPropagation) {
+
+    // 因此它支持W3C的stopPropagation()方法
+
+    e.stopPropagation();
+
+  } else {
+
+    // 否则，我们需要使用IE的方式来取消事件冒泡
+
+    window.event.cancelBubble = true;
+
+  }
+
+}
+
+
+netTopology.prototype.showAbstract = function (a, d, e) {
+  let ev = e;
+  var px = netTopology.container.getBoundingClientRect().left;
+  var py = netTopology.container.getBoundingClientRect().top;
+  // console.log(ev.clientX,ev.clientY)
+  if (netTopology.INTERSECTED) {
+    $("#abstract").css("display", "table");
+    var b = document.getElementById("abstract");
+    b.innerText = netTopology.INTERSECTED.value;
+    // console.log(netTopology.INTERSECTED.value,'netTopology.INTERSECTED.value')
+    b.style.top = ev.clientY - py + "px";
+    b.style.left = ev.clientX - px + "px"
+    // console.log( b.style.top, b.style.left)
+  } else $("#abstract").css("display", "none")
+}
+
+
+netTopology.prototype.onMouseClick = function (a) {
+
+  netTopology.INTERSECTED && netTopology.isShowDetail && (netTopology.showDetail(!0), netTopology.prototype.showPic(!0))
+
+}
+
+function chartClick() {
+
+}
+
+netTopology.prototype.showPic = function (a) {
+
+  a ? netTopology.INTERSECTED.name != netTopology.pointed && (netTopology.picPath = netTopology.INTERSECTED.userData.pic, $("#picture").fadeOut(400), setTimeout("netTopology.prototype.changePic(picPath)", 400), netTopology.pointed = netTopology.INTERSECTED.name) : $("#picture").fadeOut(900)
+}
+
+netTopology.prototype.changePic = function (a) {
+  $("#picture img").attr("src", "http://192.168.8.94:8000/pic/" + a);
+  // console.log( "http://192.168.8.94:8000/pic/" + a)
+  $("#picture").fadeIn(400)
+}
+
 
 netTopology.prototype.destroy = function () {
   // netTopology.container=null;
