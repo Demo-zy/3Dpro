@@ -5,15 +5,15 @@
       网络空间态势监视
     </div>
     <!--three渲染容器 -->
-    <div id="container"></div>
+    <div id="container" style="cursor: pointer"></div>
 
     <!--背景 -->
-    <div id="background"></div>
+    <div id="background" style="cursor: pointer"></div>
     <!-- 名称框 -->
     <p id="abstract">文字文字</p>
     <!-- 详情框 -->
     <div id="detail">
-      <textarea>文字文字</textarea>
+      <textarea></textarea>
     </div>
     <!-- 图片框 -->
     <div id="picture">
@@ -27,6 +27,12 @@
       <button id="bottom">物理层</button>
       <button id="browse">自动旋转</button>
     </div>
+
+<!--    <a-button type="primary" @click.stop="showModal" >Open Modal</a-button>-->
+    <a-modal v-model:open="open" title="Basic Modal" @ok.stop="handleOk" style="z-index: 100000">
+      <p>{{abstract}}}</p>
+
+    </a-modal>
 
 
   </div>
@@ -48,6 +54,8 @@ import {
 } from '@/components'
 import { baseMixin } from '@/store/app-mixin'
 import Json from "@/assets/data/data.json";
+import { ref } from 'vue';
+
 
 
 export default {
@@ -72,6 +80,8 @@ export default {
         stroke: '#fff',
         lineWidth: 1
       },
+      abstract:'',
+      open:false,
       showMap:{},
       showMapAni:{},
       showObj:{
@@ -128,7 +138,8 @@ export default {
     this.newNetTopo=new netTopology(this.showObj);
     this.newNetTopo.init(jsonData);
     this.newNetTopo.animate();
-    that.newNetTopo.rotate()
+    this.newNetTopo.rotate();
+    document.addEventListener("click",this.click , !1);
 
     $(".btn_list button").bind("click", function (a) {
       switch (a.target.id) {
@@ -169,6 +180,20 @@ export default {
       let m =function(e){e.preventDefault();};
       document.body.style.overflow='';//出现滚动条
       document.removeEventListener("touchmove",m,{ passive:true });
+    },
+    handleOk(e) {
+      console.log(e);
+      this.open = false;
+    },
+    click(){
+
+      let detail=this.newNetTopo.onMouseClick();
+      console.log(detail,'detail')
+      if(detail.userData){
+        this.abstract=detail.userData.abstract;
+        this.open = true;
+      }
+
     }
 
   },
