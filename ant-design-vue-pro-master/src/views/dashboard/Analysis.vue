@@ -21,11 +21,11 @@
     </div>
     <!--按钮组-->
     <div class="btn_list">
-      <button id="main">三层展示</button>
-      <button id="upper">业务层</button>
-      <button id="middle">网络层</button>
-      <button id="bottom">物理层</button>
-      <button id="browse">自动旋转</button>
+      <button id="main" @click.stop="handleThrid">三层展示</button>
+      <button id="upper" @click.stop="handleYewu">业务层</button>
+      <button id="middle" @click.stop="handleWangluo">网络层</button>
+      <button id="bottom" @click.stop="hanleWuli">物理层</button>
+      <button id="browse" @click.stop="handleRote">自动旋转</button>
     </div>
 
 <!--    <a-button type="primary" @click.stop="showModal" >Open Modal</a-button>-->
@@ -141,24 +141,7 @@ export default {
     this.newNetTopo.rotate();
     document.addEventListener("click",this.click , !1);
 
-    $(".btn_list button").bind("click", function (a) {
-      switch (a.target.id) {
-        case "main":
-          that.newNetTopo.homeAnimation();
-          break;
-        case "upper":
-          that.newNetTopo.networkAnimation();
-          break;
-        case "middle":
-          that.newNetTopo.serviceAnimation();
-          break;
-        case "bottom":
-          that.newNetTopo.virtualUser();
-          break;
-        case "browse":
-          that.newNetTopo.rotate()
-      }
-    });
+
 
     this.stopMove()
 
@@ -186,14 +169,29 @@ export default {
       this.open = false;
     },
     click(){
-
       let detail=this.newNetTopo.onMouseClick();
       console.log(detail,'detail')
       if(detail.userData){
-        this.abstract=detail.userData.abstract;
+        this.abstract=detail.userData.abstract?detail.userData.abstract:detail.userData;
         this.open = true;
       }
 
+    },
+    handleThrid(){
+      this.newNetTopo.homeAnimation();
+    },
+    handleYewu(){
+      this.newNetTopo.networkAnimation();
+
+    },
+    handleWangluo(){
+      this.newNetTopo.serviceAnimation();
+    },
+    hanleWuli(){
+      this.newNetTopo.virtualUser();
+    },
+    handleRote(){
+      this.newNetTopo.rotate()
     }
 
   },
@@ -248,7 +246,7 @@ export default {
   text-align: center;
   position: absolute;
   bottom: 10px;
-  z-index: 1
+  z-index: 10000
 }
 
 #main {

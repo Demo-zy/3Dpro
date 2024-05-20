@@ -88,6 +88,7 @@ export function netTopology(obj) {
   netTopology.topoMeshNodeArr = [];
   netTopology.testLine=[];
   netTopology.testLineGroup=new THREE.Group;
+  netTopology.lineDetail=null;
 
 
 }
@@ -108,7 +109,7 @@ netTopology.prototype.init = function (data) {
   netTopology.controls.panSpeed = .8;
   netTopology.controls.enableZoom = !1;
   netTopology.controls.enablePan = !1;
-  netTopology.controls.autoRotate = !0;
+  netTopology.controls.autoRotate = !1;
   netTopology.controls.autoRotateSpeed = .5;
   netTopology.scene = new THREE.Scene;
   netTopology.scene.background = new THREE.Color(0);
@@ -131,10 +132,13 @@ netTopology.prototype.init = function (data) {
   netTopology.container.appendChild(netTopology.renderer.domElement);
   //创建一个射线投射器`Raycaster`
   netTopology.raycaster = new THREE.Raycaster;
+
   netTopology.myStats = new Stats;
+
+
   // console.log(netTopology.container.addEventListener("mousemove"))
   document.addEventListener("mousemove", netTopology.prototype.onDocumentMouseMove, !1);
-  // document.addEventListener("click", netTopology.prototype.onMouseClick, !1);
+  document.addEventListener("click", netTopology.prototype.onMouseClick, !1);
   window.addEventListener("resize", netTopology.prototype.onWindowResize, !1)
   if (document.addEventListener) { //火狐使用DOMMouseScroll绑定
     document.addEventListener('DOMMouseScroll', netTopology.prototype.scrollFunc, false);
@@ -330,6 +334,7 @@ netTopology.prototype.initLine =async function () {
         value.id == linkTargetItem && (targetVector = netTopology.nodePos[index].position, h += 1);
       if (2 == h) return !1
     });
+
     /*
      subVectors( a: Vector3, b: Vector3 ): this
      将该向量设置为a - b。
@@ -353,14 +358,53 @@ netTopology.prototype.initLine =async function () {
     headWidth -- The width of the head of the arrow. Default is 0.2 * headLength.
     * */
     var distance = soureVector.distanceTo(targetVector) - 25,
-      arrow = new THREE.ArrowHelper(fthirdVector, soureVector, distance, '#FFD700', 20, 7);
+      arrow = new THREE.ArrowHelper(fthirdVector, soureVector, distance, '#FFD700', 10, 5);
     arrow.layer = layer;
+    arrow.layers.enable( 1 );
     if (arrow.layer == 4) {
-      arrow.setColor('#ffffff');
-      arrow.setLength(distance, 0, 0)
+      arrow.setColor('#FFD700');
+      arrow.setLength(distance,0,0)
     }
     netTopology.lineObjects.push(arrow);
-    // console.log(arrow.name, 'arrow.name')
+
+/*
+// // 计算线段上的顶点分布
+    const count = 10; // 顶点数量
+    var distance = soureVector.distanceTo(targetVector) - 25;
+    const step = distance/10; // 每个顶点之间的距离
+    const positionsArr = [];
+
+    for (let i = 0; i <= count; i++) {
+      const distance = i * step;
+      const position = new THREE.Vector3().copy(soureVector).lerp(targetVector, distance / targetVector.distanceTo(soureVector));
+      positionsArr.push(position.x, position.y, position.z);
+    }
+        const positions = new Float32Array(positionsArr);
+    // console.log(positionsArr,'positionsArr')
+// // 创建MeshLine对象
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    // geometry.vertices.push(
+    //   soureVector, // 起点位置
+    //   targetVector// 终点位置，确定方向和长度
+    // );
+    var line = new MeshLine();
+    line.setGeometry( geometry );
+
+    // 创建MeshLine材质
+    var material = new MeshLineMaterial({
+      color: new THREE.Color(0x00ff00),
+      lineWidth: 5, // 设置线宽
+      opacity: 1,
+      emissive: "black"
+    });
+
+    var arrow = new THREE.Mesh( line.geometry, material );
+    netTopology.lineObjects.push(arrow);
+    arrow.layer = layer;
+    arrow.layers.enable( 1 );
+*/
+
     switch (arrow.layer) {
       case 1:
         firstArrowLayer.add(arrow);
@@ -372,7 +416,7 @@ netTopology.prototype.initLine =async function () {
         thirdArrowLayer.add(arrow);
         break;
       case 4:
-        forthArrowLayer.add(arrow)
+        // forthArrowLayer.add(arrow)
     }
   }
 
@@ -405,6 +449,13 @@ netTopology.prototype.initLine =async function () {
   // console.log(netTopology.networkGroup.children,netTopology.gridHelper,netTopology.nodeGroup,'netTopology.nodeGroup')
   netTopology.scene.add(netTopology.networkGroup);
   // console.log(netTopology.networkGroup,'netTopology.networkGroup')
+  netTopology.objectsToTest = [];
+  netTopology.lineObjects.forEach(function(arrowHelper) {
+    console.log(arrowHelper)
+    netTopology.objectsToTest.push(arrowHelper);
+
+  });
+  console.log(netTopology.lineObjects,netTopology.nodeObjects,'netTopology.lineObjects')
 }
 
 netTopology.prototype.initMeshLine=function () {
@@ -448,7 +499,7 @@ netTopology.prototype.initMeshLine=function () {
 //   netTopology.testLine.add(new THREE.Mesh(line.geometry, this.material));
   const mesh=new THREE.Mesh(line.geometry, this.material);
   mesh.value='testline'
-  mesh.raycaster=MeshLineRaycast;
+  // mesh.raycaster=MeshLineRaycast;
   netTopology.testLineGroup.add(mesh)
   netTopology.nodeObjects.push(mesh);
   // netTopology.testLine.push(mesh)
@@ -478,6 +529,7 @@ netTopology.prototype.render = function () {
   netTopology.prototype.rayMousemove(netTopology.mouse, netTopology.camera);
   // console.log(netTopology.mouse.x,netTopology.mouse.y,'netTopology.mouse')
   netTopology.prototype.changeObjFace(netTopology.nodeObjects);
+  // netTopology.prototype.changeObjFace(netTopology.lineObjects);
   netTopology.renderer.render(netTopology.scene, netTopology.camera)
 }
 
@@ -489,17 +541,36 @@ netTopology.prototype.animate = function () {
   TWEEN.update()
 }
 
+
 netTopology.prototype.rayMousemove = function (a, d) {
   //.setFromCamera()计算射线投射器`Raycaster`的射线属性.ray
 // 形象点说就是在点击位置创建一条射线，用来选中拾取模型对象
   netTopology.raycaster.setFromCamera(a, d);
-  // 通过.intersectObjects()方法可以计算出来与射线相交的网格模型
+//   // 通过.intersectObjects()方法可以计算出来与射线相交的网格模型
   a = netTopology.raycaster.intersectObjects(netTopology.nodeObjects);
   // console.log(a,'aaaa')
-  // let b = netTopology.raycaster.intersectObjects(netTopology.testLine);
-  // console.log(b,'bbbbbbbbbb')
+  let intersects  = netTopology.raycaster.intersectObjects(netTopology.objectsToTest);
+  // console.log(intersects,'intersects')
 
-  // console.log(a,a.length,'intersectObjects')
+  // // 创建一个数组来存储所有可被检测的物体
+  // // 遍历交点
+  for (var i = 0; i < intersects.length; i++) {
+    var intersect = intersects[i];
+    // 检查交点对象是否为ArrowHelper的line或cone
+    netTopology.lineObjects.forEach(function(arrowHelper) {
+      if (intersect.object === arrowHelper.line|| intersect.object === arrowHelper.cone) {
+
+        // 这里可以执行一些操作，比如改变ArrowHelper的颜色
+        arrowHelper.setColor(0xff0000); // 将颜色设置为红色
+        netTopology.lineDetail={userData:arrowHelper.uuid}
+        console.log('Hit ArrowHelper:', arrowHelper,netTopology.lineDetail);
+        // netTopology.INTERSECTED=arrowHelper.type
+      }else {
+        arrowHelper.setColor('#FFD700');
+      }
+    })
+  }
+
   0 < a.length ? netTopology.INTERSECTED != a[0].object
     && (netTopology.INTERSECTED
     && netTopology.INTERSECTED.material.emissive.setHex(netTopology.INTERSECTED.currentHex),
@@ -896,8 +967,11 @@ netTopology.prototype.showAbstract = function (a, d, e) {
 netTopology.prototype.onMouseClick = function () {
 
   if(netTopology.INTERSECTED){
-
     return netTopology.INTERSECTED
+    console.log(netTopology.INTERSECTED,'netTopology.INTERSECTED')
+  }else if(netTopology.lineDetail){
+    console.log(netTopology.lineDetail,'netTopology.lineDetail')
+    return netTopology.lineDetail
   }else {
     return false;
   }
