@@ -30,9 +30,13 @@
 
 <!--    <a-button type="primary" @click.stop="showModal" >Open Modal</a-button>-->
     <a-modal v-model:open="open" title="Basic Modal" @ok.stop="handleOk" style="z-index: 100000">
-      <p>{{abstract}}}</p>
+      <p>{{abstract}}</p>
 
     </a-modal>
+    <div class="switchTab">
+      <a-button @click.stop="handlethreeD">3D</a-button>
+      <a-button @click.stop="handletwoD">2D</a-button>
+    </div>
 
 
   </div>
@@ -55,6 +59,7 @@ import {
 import { baseMixin } from '@/store/app-mixin'
 import Json from "@/assets/data/data.json";
 import { ref } from 'vue';
+import {doc} from "@/assets/js/echartsForce";
 
 
 
@@ -139,7 +144,10 @@ export default {
     this.newNetTopo.init(jsonData);
     this.newNetTopo.animate();
     this.newNetTopo.rotate();
-    document.addEventListener("click",this.click , !1);
+    setTimeout(()=>{
+      document.addEventListener("click",this.click , !1);
+
+    })
 
 
 
@@ -174,6 +182,8 @@ export default {
       if(detail.userData){
         this.abstract=detail.userData.abstract?detail.userData.abstract:detail.userData;
         this.open = true;
+      }else {
+        this.open = false;
       }
 
     },
@@ -192,11 +202,20 @@ export default {
     },
     handleRote(){
       this.newNetTopo.rotate()
+    },
+    handlethreeD(){
+
+    },
+    handletwoD(){
+      this.$router.push({
+        path: '/dashboard/charts'
+      })
     }
 
   },
   beforeDestroy() {
     this.newNetTopo.destroy();
+    document.removeEventListener("click", this.click, !1);
   }
 }
 </script>
@@ -228,6 +247,13 @@ export default {
   top: 20px;
   width: 100%;
   z-index: 1
+}
+
+.switchTab{
+  position: absolute;
+  right: 5%;
+  top: 13%;
+  z-index: 1000;
 }
 
 #background {

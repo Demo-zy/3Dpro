@@ -89,6 +89,7 @@ export function netTopology(obj) {
   netTopology.testLine=[];
   netTopology.testLineGroup=new THREE.Group;
   netTopology.lineDetail=null;
+  netTopology.objectsToTest = [];
 
 
 }
@@ -138,7 +139,7 @@ netTopology.prototype.init = function (data) {
 
   // console.log(netTopology.container.addEventListener("mousemove"))
   document.addEventListener("mousemove", netTopology.prototype.onDocumentMouseMove, !1);
-  document.addEventListener("click", netTopology.prototype.onMouseClick, !1);
+  // document.addEventListener("click", netTopology.prototype.onMouseClick, !1);
   window.addEventListener("resize", netTopology.prototype.onWindowResize, !1)
   if (document.addEventListener) { //火狐使用DOMMouseScroll绑定
     document.addEventListener('DOMMouseScroll', netTopology.prototype.scrollFunc, false);
@@ -449,13 +450,13 @@ netTopology.prototype.initLine =async function () {
   // console.log(netTopology.networkGroup.children,netTopology.gridHelper,netTopology.nodeGroup,'netTopology.nodeGroup')
   netTopology.scene.add(netTopology.networkGroup);
   // console.log(netTopology.networkGroup,'netTopology.networkGroup')
-  netTopology.objectsToTest = [];
+
   netTopology.lineObjects.forEach(function(arrowHelper) {
     console.log(arrowHelper)
     netTopology.objectsToTest.push(arrowHelper);
 
   });
-  console.log(netTopology.lineObjects,netTopology.nodeObjects,'netTopology.lineObjects')
+  console.log(netTopology.lineObjects,netTopology.objectsToTest,'netTopology.lineObjects')
 }
 
 netTopology.prototype.initMeshLine=function () {
@@ -535,7 +536,7 @@ netTopology.prototype.render = function () {
 
 netTopology.prototype.animate = function () {
   // console.log('aaaaa')
-  netTopology.timer = window.requestAnimationFrame(netTopology.prototype.animate);
+  netTopology.timer = requestAnimationFrame(netTopology.prototype.animate);
   netTopology.prototype.render();
   netTopology.myStats.update();
   TWEEN.update()
@@ -548,28 +549,32 @@ netTopology.prototype.rayMousemove = function (a, d) {
   netTopology.raycaster.setFromCamera(a, d);
 //   // 通过.intersectObjects()方法可以计算出来与射线相交的网格模型
   a = netTopology.raycaster.intersectObjects(netTopology.nodeObjects);
-  // console.log(a,'aaaa')
   let intersects  = netTopology.raycaster.intersectObjects(netTopology.objectsToTest);
-  // console.log(intersects,'intersects')
-
   // // 创建一个数组来存储所有可被检测的物体
   // // 遍历交点
-  for (var i = 0; i < intersects.length; i++) {
-    var intersect = intersects[i];
-    // 检查交点对象是否为ArrowHelper的line或cone
-    netTopology.lineObjects.forEach(function(arrowHelper) {
-      if (intersect.object === arrowHelper.line|| intersect.object === arrowHelper.cone) {
 
-        // 这里可以执行一些操作，比如改变ArrowHelper的颜色
-        arrowHelper.setColor(0xff0000); // 将颜色设置为红色
-        netTopology.lineDetail={userData:arrowHelper.uuid}
-        console.log('Hit ArrowHelper:', arrowHelper,netTopology.lineDetail);
-        // netTopology.INTERSECTED=arrowHelper.type
-      }else {
-        arrowHelper.setColor('#FFD700');
-      }
+  if(intersects.length){
+    for (var i = 0; i < intersects.length; i++) {
+      var intersect = intersects[i];
+      // 检查交点对象是否为ArrowHelper的line或cone
+      netTopology.lineObjects.forEach(function(arrowHelper) {
+        if (intersect.object === arrowHelper.line|| intersect.object === arrowHelper.cone) {
+          // 这里可以执行一些操作，比如改变ArrowHelper的颜色
+          arrowHelper.setColor(0xff0000); // 将颜色设置为红色
+          netTopology.lineDetail={userData:arrowHelper.uuid}
+          // netTopology.INTERSECTED=arrowHelper.type
+        }else {
+          arrowHelper.setColor('#FFD700');
+        }
+      })
+    }
+  }else {
+    netTopology.lineObjects.forEach(function(arrowHelper) {
+      arrowHelper.setColor('#FFD700');
+      netTopology.lineDetail=null
     })
   }
+
 
   0 < a.length ? netTopology.INTERSECTED != a[0].object
     && (netTopology.INTERSECTED
@@ -975,7 +980,7 @@ netTopology.prototype.onMouseClick = function () {
   }else {
     return false;
   }
-  netTopology.INTERSECTED && netTopology.isShowDetail && (netTopology.showDetail(!0), netTopology.prototype.showPic(!0))
+  // netTopology.INTERSECTED && netTopology.isShowDetail && (netTopology.showDetail(!0), netTopology.prototype.showPic(!0))
 
 }
 
@@ -1008,20 +1013,26 @@ netTopology.prototype.destroy = function () {
   // netTopology.jsonData=null;
   // netTopology.isShowDetail=null;
   // netTopology.mouse = null;
-  // netTopology.INTERSECTED=null;
+  netTopology.INTERSECTED=null;
+  netTopology.lineDetail=null;
   // netTopology.offset =null;
   // netTopology.which_layer="home";
   // netTopology.pointed=null;
   // netTopology.showString=null;
   // netTopology.picPath=null;
   // netTopology.myStats=null;
+  netTopology.raycaster=null;
+  if(netTopology.timer!=null){
+    cancelAnimationFrame(netTopology.timer);
+    netTopology.timer=null
+  }
   document.removeEventListener("mousemove", netTopology.prototype.onDocumentMouseMove, !1);
-  document.removeEventListener("click", netTopology.prototype.onMouseClick(), !1);
+
   window.removeEventListener("resize", netTopology.prototype.onWindowResize, !1);
   window.removeEventListener('wheel', netTopology.prototype.scrollFunc, !1)
   document.removeEventListener('DOMMouseScroll', netTopology.prototype.scrollFunc, !1);
+  // document.removeEventListener("click", netTopology.prototype.onMouseClick(), !1);
 
-  window.cancelAnimationFrame(netTopology.timer);
 }
 
 

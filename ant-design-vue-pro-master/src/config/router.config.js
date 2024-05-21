@@ -35,12 +35,18 @@ export const asyncRouterMap = [
           //   name: 'Monitor',
           //   meta: { title: 'menu.dashboard.monitor', target: '_blank' }
           // },
+          // {
+          //   path: '/dashboard/workplace',
+          //   name: 'Workplace',
+          //   component: () => import('@/views/dashboard/Workplace'),
+          //   meta: { title: 'menu.dashboard.workplace', keepAlive: true, permission: ['dashboard'] }
+          // },
           {
-            path: '/dashboard/workplace',
-            name: 'Workplace',
-            component: () => import('@/views/dashboard/Workplace'),
-            meta: { title: 'menu.dashboard.workplace', keepAlive: true, permission: ['dashboard'] }
-          }
+            path: '/dashboard/charts',
+            name:'chats',
+            meta: { title: 'menu.dashboard.charts', keepAlive: false, permission: ['dashboard'] },
+            component: ()=> import('@/views/dashboard/charts.vue')
+          },
         ]
       },
       // forms
@@ -126,6 +132,7 @@ export const asyncRouterMap = [
           }
         ]
       },
+
 
       // profile
       {
@@ -337,7 +344,8 @@ export const asyncRouterMap = [
     path: '*',
     redirect: '/404',
     hidden: true
-  }
+  },
+
 ]
 
 /**
@@ -377,5 +385,6 @@ export const constantRouterMap = [
   {
     path: '/404',
     component: () => import(/* webpackChunkName: "fail" */ '@/views/exception/404')
-  }
+  },
+
 ]
